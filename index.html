@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Number Verification</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+            background: #f1f5f9;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 950px;
+            margin: auto;
+        }
+
+        .header {
+            text-align: center;
+            margin: 20px 0 30px;
+        }
+
+        .header h1 {
+            font-size: 34px;
+            color: #172033;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #64748b;
+        }
+
+        .sections {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 18px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        .card h2 {
+            color: #172033;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            color: #64748b;
+            line-height: 1.6;
+            margin-bottom: 22px;
+        }
+
+        .number {
+            height: 120px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            background: #eff6ff;
+            border: 2px dashed #93c5fd;
+            border-radius: 15px;
+
+            color: #2563eb;
+            font-size: 48px;
+            font-weight: bold;
+            letter-spacing: 10px;
+
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        input {
+            width: 100%;
+            height: 55px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 22px;
+            text-align: center;
+            letter-spacing: 5px;
+            outline: none;
+            margin-bottom: 15px;
+        }
+
+        input:focus {
+            border-color: #2563eb;
+        }
+
+        button {
+            width: 100%;
+            height: 55px;
+            border: none;
+            border-radius: 10px;
+            background: #2563eb;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        button:disabled {
+            background: #94a3b8;
+        }
+
+        .message {
+            display: none;
+            margin-top: 15px;
+            padding: 13px;
+            border-radius: 10px;
+            text-align: center;
+            line-height: 1.5;
+            font-weight: bold;
+        }
+
+        .success {
+            display: block;
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .error {
+            display: block;
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        @media (max-width: 700px) {
+
+            body {
+                padding: 12px;
+            }
+
+            .header {
+                margin: 10px 0 20px;
+            }
+
+            .header h1 {
+                font-size: 27px;
+            }
+
+            .header p {
+                font-size: 14px;
+            }
+
+            .sections {
+                grid-template-columns: 1fr;
+                gap: 18px;
+            }
+
+            .card {
+                padding: 22px 18px;
+            }
+
+            .card h2 {
+                font-size: 21px;
+            }
+
+            .number {
+                height: 105px;
+                font-size: 40px;
+                letter-spacing: 7px;
+            }
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 15px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #D4AF37;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>Number Verification</h1>
+        <p>Generate and verify permanent numbers</p>
+    </div>
+
+
+    <!-- GENERATE -->
+
+    <div class="sections">
+
+        <div class="card">
+
+            <h2>Generate Number</h2>
+
+            <p class="description">
+                Generate a random 3-digit number and give it
+                to the person. The number will remain stored
+                in the database.
+            </p>
+
+            <div id="generatedNumber" class="number">
+                ---
+            </div>
+
+            <button id="generateBtn" onclick="generateNumber()">
+                Generate Number
+            </button>
+
+            <div id="generateMessage" class="message"></div>
+
+        </div>
+
+
+        <!-- CHECK -->
+
+        <div class="card">
+
+            <h2>Check Number</h2>
+
+            <p class="description">
+                Enter the number given to the person.
+                The system will check whether it exists
+                in the database.
+            </p>
+
+            <label for="numberInput">
+                Enter 3-Digit Number
+            </label>
+
+            <input
+                id="numberInput"
+                type="number"
+                min="100"
+                max="999"
+                placeholder="000"
+                inputmode="numeric"
+            >
+
+            <button id="checkBtn" onclick="checkNumber()">
+                Confirm
+            </button>
+
+            <div id="checkMessage" class="message"></div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+    // =====================================
+    // SUPABASE
+    // =====================================
+
+    const SUPABASE_URL =
+        "https://rvwtdxvvqweruqzbmveg.supabase.co";
+
+    const SUPABASE_ANON_KEY =
+        "sb_publishable_Gd2egwbrHFPdhynn6lwnjQ_agBNCifS";
+
+
+    const supabaseClient =
+        window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_ANON_KEY
+        );
+
+
+    // =====================================
+    // GENERATE PERMANENT NUMBER
+    // =====================================
+
+    async function generateNumber() {
+
+        const button =
+            document.getElementById("generateBtn");
+
+        const display =
+            document.getElementById("generatedNumber");
+
+        const message =
+            document.getElementById("generateMessage");
+
+
+        button.disabled = true;
+        button.textContent = "Generating...";
+
+        message.className = "message";
+        message.textContent = "";
+
+
+        try {
+
+            let number;
+            let available = false;
+
+
+            while (!available) {
+
+                number =
+                    Math.floor(Math.random() * 900) + 100;
+
+
+                const { data, error } =
+                    await supabaseClient
+                        .from("verification_numbers")
+                        .select("id")
+                        .eq(
+                            "verification_number",
+                            number
+                        )
+                        .maybeSingle();
+
+
+                if (error) {
+                    throw error;
+                }
+
+
+                if (!data) {
+                    available = true;
+                }
+            }
+
+
+            // Save permanently
+
+            const { error: insertError } =
+                await supabaseClient
+                    .from("verification_numbers")
+                    .insert({
+                        verification_number: number
+                    });
+
+
+            if (insertError) {
+                throw insertError;
+            }
+
+
+            display.textContent = number;
+
+            message.textContent =
+                "✅ Number saved successfully. Give this number to the person.";
+
+            message.className =
+                "message success";
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            message.textContent =
+                "❌ Unable to generate number. Please check Supabase settings.";
+
+            message.className =
+                "message error";
+
+        } finally {
+
+            button.disabled = false;
+            button.textContent = "Generate Number";
+        }
+    }
+
+
+    // =====================================
+    // CHECK PERMANENT NUMBER
+    // =====================================
+
+    async function checkNumber() {
+
+        const input =
+            document.getElementById("numberInput");
+
+        const button =
+            document.getElementById("checkBtn");
+
+        const message =
+            document.getElementById("checkMessage");
+
+        const number =
+            Number(input.value);
+
+        message.className = "message";
+        message.textContent = "";
+
+        if (
+            !number ||
+            number < 100 ||
+            number > 999 ||
+            !/^\d{3}$/.test(input.value)
+        ) {
+
+            message.textContent =
+                "❌ Please enter a valid 3-digit number.";
+
+            message.className =
+                "message error";
+
+            return;
+        }
+
+        button.disabled = true;
+        button.textContent = "Checking...";
+
+        try {
+
+            // Find the number and check whether it was already used.
+            const { data, error } =
+                await supabaseClient
+                    .from("verification_numbers")
+                    .select("id, verification_number, confirmed_at")
+                    .eq("verification_number", number)
+                    .maybeSingle();
+
+            if (error) {
+                throw error;
+            }
+
+            // Number is not registered.
+            if (!data) {
+
+                message.textContent =
+                    "❌ Wrong number. This number is not registered.";
+
+                message.className =
+                    "message error";
+
+                return;
+            }
+
+            // Number has already been successfully checked once.
+            if (data.confirmed_at) {
+
+                message.textContent =
+                    "⚠️ This number has already been checked.";
+
+                message.className =
+                    "message error";
+
+                return;
+            }
+
+            // Confirm it exactly once.
+            const { data: updatedData, error: updateError } =
+                await supabaseClient
+                    .from("verification_numbers")
+                    .update({
+                        status: "confirmed",
+                        confirmed_at: new Date().toISOString()
+                    })
+                    .eq("id", data.id)
+                    .is("confirmed_at", null)
+                    .select("id, confirmed_at")
+                    .maybeSingle();
+
+            if (updateError) {
+                throw updateError;
+            }
+
+            // Another request may have confirmed it first.
+            if (!updatedData) {
+
+                message.textContent =
+                    "⚠️ This number has already been checked.";
+
+                message.className =
+                    "message error";
+
+                return;
+            }
+
+            // First successful check.
+            message.textContent =
+                "✅ He is the right person!";
+
+            message.className =
+                "message success";
+
+        } catch (error) {
+
+            console.error("Check error:", error);
+
+            message.textContent =
+                "❌ Something went wrong. Please try again.";
+
+            message.className =
+                "message error";
+
+        } finally {
+
+            button.disabled = false;
+            button.textContent = "Confirm";
+        }
+    }
+</script>
+
+<footer>
+    Design by Fakhruddin Sadriwala
+</footer>
+
+</body>
+</html>
